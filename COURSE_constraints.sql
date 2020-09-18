@@ -175,3 +175,194 @@ alter table hist add constraint  hst_fk_dep    foreign key (deptno)
                             references dept(deptno)
                             ON UPDATE NO ACTION
                             ON DELETE CASCADE;
+
+
+/*
+1.	A department that employs the president or a manager should also employ at least one administrator.
+2.	The company hires adult personnel only.
+3.	The llimit of a salary grade must be higher than the llimit of the next lower salary grade. The ulimit of the salary grade must be higher than the ulimit of the next lower salary grade. Note; the numbering of grades can contain holes.
+4.	The start date and known trainer uniquely identify course offerings.
+Note: the constraint ‘ofr_unq’ is too strict, this does not allow multiple unknown trainers on the same start date, this unique constraint should therefore be dropped. Create a new constraint to implement the constraint, the use of a filtered index is not allowed.
+5.	At least half of the course offerings (measured by duration) taught by a trainer must be ‘home based’. Note: ‘Home based’ means the course is offered at the same location where the employee is employed.
+6.	You are allowed to teach a course only if:
+your job type is trainer and
+-      you have been employed for at least one year
+-	or you have attended the course yourself (as participant)
+*/
+
+/*
+Implement the constraints
+Use the following plan of approach
+1.	Include in your report the original definition of the constraint,
+2.	Describe which tables and columns are involved in this constraint
+3.	Describe for which actions (I/U/D) this constraint should be validated
+4.	Define how to implement the constraint using a check constraint, a trigger of a stored procedure or a combination.
+The following order is preferred;
+-	if it can be implemented as a declarative constraint do so, if not
+-	if it can be implemented with a check constraint do so, if not
+-	if it can be implemented with a trigger do so, if not
+-	implement it with a stored procedure (and disallow direct access to the involving tables!)
+-	Of course a combination of these is also an option.
+
+*/
+
+/* 1. A department that employs the president or a manager should also employ at least one administrator */
+# need trigger when president or a manager gets added.
+
+GO
+DROP TRIGGER IF EXISTS DepartmentAdminstratorPresident
+GO
+ALTER TRIGGER DepartmentAdminstratorPresident
+ON emp --mogelijk ook nog dept table checken op veranderingen
+AFTER insert, update, delete
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
+    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+/*
+go
+create proc SP_insertEmp       @empno numeric(4), @ename varchar(8), @job varchar(9), @born date,
+                               @hired date, @sgrade numeric(2), @msal numeric(7,2), @username varchar(15), @deptno numeric(2)
+as
+begin
+    set nocount on
+    begin try
+        if @job = 'President'
+            if (exists(select * from emp e join term t on e.empno=t.empno where hired > leftcomp and job = 'President') OR
+                exists(select empno from emp where job = 'President' except select empno from term))
+            throw 50000, 'there is currently a President already', 1
+        insert into emp (empno,ename,job,born,hired,sgrade,msal,username,deptno)
+        values(@empno,@ename,@job,@born,@hired,@sgrade,@msal,@username,@deptno)
+    end try
+    begin catch
+    throw
+    end catch
+end
+go
+*/
+
+
+
+/* 2. The company hires adult personnel only. */
+
+alter table emp add constraint emp_chk_age check (born <= dateadd(year,(-18), getdate()));
+
+/* 3. The llimit of a salary grade must be higher than the llimit of the next lower salary grade. The ulimit of the salary grade must be higher than the ulimit of the next lower salary grade. Note; the numbering of grades can contain holes. */
+GO
+DROP TRIGGER IF EXISTS LimitSalaryGradeIncremental
+GO
+ALTER TRIGGER LimitSalaryGradeIncremental
+ON grd
+AFTER insert, update
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
+    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+
+
+
+/* get MAX(llimit) van alle grades < current salary grade, dit moet lager zijn dan Llimit en hetzelfde geldt voor de upper limit */
+
+
+SELECT @lowerLimit = MAX(llimit)
+  FROM COURSE.dbo.grd
+    WHERE grade < @salaryID
+
+SELECT @upperLimit = MIN(ulimit)
+  FROM COURSE.dbo.grd
+    WHERE grade < @salaryID
+
+
+
+/* 4. The start date and known trainer uniquely identify course offerings. replace the unique key on startdate and trainer Note. no filtered index */
+# need stored procedure to fetch all trainer startdate combinations where trainer IS NOT NULL
+GO
+DROP TRIGGER IF EXISTS TrainerOnlyCoursePerDay
+GO
+ALTER TRIGGER TrainerOnlyCoursePerDay
+ON offr
+AFTER insert, update
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
+    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+
+
+/* 5. At least half of the course offerings (measured by duration) taught by a trainer must be ‘home based’. Note: ‘Home based’ means the course is offered at the same location where the employee is employed. */
+# need stored procedure
+GO
+DROP TRIGGER IF EXISTS TrainerWorksFromHome
+GO
+ALTER TRIGGER TrainerWorksFromHome
+ON offr
+AFTER insert, update
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
+    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+
+
+/* 6. You are allowed to teach a course only if:
+your job type is trainer and
+-      you have been employed for at least one year
+-	or you have attended the course yourself (as participant) */
+GO
+DROP TRIGGER IF EXISTS TrainerQualified
+GO
+ALTER TRIGGER TrainerQualified
+ON offr
+AFTER insert, update
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
+    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+
+
+
+
+alter table offr add constraint offr_chk_allowed CHECK((job type='TRAINER'AND employement>1year) OR check reg if you attended course)
