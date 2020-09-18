@@ -89,7 +89,6 @@ alter table offr add constraint  ofr_chk_mxcp  check (maxcap between 6 and 99);
 
   -- table constraints:
 alter table offr add constraint  ofr_pk        primary key (course,starts);
-alter table offr add constraint  ofr_unq       unique (starts,trainer);
   -- attribute constraints:
 alter table reg add constraint  reg_chk_stud  check (stud > 999);
 alter table reg add constraint  reg_chk_crse  check (course = upper(course));
@@ -210,19 +209,36 @@ The following order is preferred;
 # need trigger when president or a manager gets added.
 
 GO
-DROP TRIGGER IF EXISTS DepartmentAdminstratorPresident
+DROP TRIGGER IF EXISTS DepartmentAdministratorPresident
 GO
-ALTER TRIGGER DepartmentAdminstratorPresident
+CREATE TRIGGER DepartmentAdministratorPresident
 ON emp --mogelijk ook nog dept table checken op veranderingen
-AFTER insert, update, delete
+AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
 IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
-    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+	-- make special construction
+	--IF INSERT() if no manager or president is inserted
+
+	-- make special construction for delete
+	--IF DELETE() if no admin is deleted
+
+    IF UPDATE(deptno) OR UPDATE(job) -- need to make this smarter
+    BEGIN
+		IF EXISTS(SELECT 1 FROM emp WHERE deptno IN (
+		SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno WHERE job = 'MANAGER' OR job = 'PRESIDENT' GROUP BY d.deptno
+			)
+		AND job = 'ADMIN'
+		GROUP BY deptno
+		HAVING COUNT(*) = 0
+		)
+		BEGIN
+		;THROW 50000,'Every department that employs a manager or president must have atleast one administrator',1
+		END
+    END
 END TRY
 BEGIN CATCH
   ;THROW
@@ -254,29 +270,40 @@ go
 
 /* 2. The company hires adult personnel only. */
 
-alter table emp add constraint emp_chk_age check (born <= dateadd(year,(-18), getdate()));
+ALTER TABLE emp ADD CONSTRAINT emp_chk_age CHECK (born <= dateadd(year,(-18), getdate()));
 
 /* 3. The llimit of a salary grade must be higher than the llimit of the next lower salary grade. The ulimit of the salary grade must be higher than the ulimit of the next lower salary grade. Note; the numbering of grades can contain holes. */
 GO
 DROP TRIGGER IF EXISTS LimitSalaryGradeIncremental
 GO
-ALTER TRIGGER LimitSalaryGradeIncremental
+CREATE TRIGGER LimitSalaryGradeIncremental
 ON grd
-AFTER insert, update
+AFTER INSERT, UPDATE
 AS
 BEGIN
 IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
-    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+	/*
+	make a more advanced version
+	IF NOT EXISTS(SELECT * FROM deleted)
+	BEGIN
+		SELECT grade FROM Inserted
+	END
+	*/
+    IF(UPDATE(llimit) OR UPDATE(ulimit))
+		IF EXISTS(SELECT grade, llimit FROM grd g WHERE llimit > (SELECT llimit FROM grd WHERE grade = g.grade + 1))
+		OR EXISTS(SELECT grade, ulimit FROM grd g WHERE ulimit > (SELECT ulimit FROM grd WHERE grade = g.grade + 1))
+		BEGIN
+			;THROW 50000,'Salary must be lower/higher for this salary grade',1
+		END
 END TRY
 BEGIN CATCH
   ;THROW
 END CATCH
 END
-
+GO
 
 
 /* get MAX(llimit) van alle grades < current salary grade, dit moet lager zijn dan Llimit en hetzelfde geldt voor de upper limit */
@@ -295,19 +322,21 @@ SELECT @upperLimit = MIN(ulimit)
 /* 4. The start date and known trainer uniquely identify course offerings. replace the unique key on startdate and trainer Note. no filtered index */
 # need stored procedure to fetch all trainer startdate combinations where trainer IS NOT NULL
 GO
-DROP TRIGGER IF EXISTS TrainerOnlyCoursePerDay
+DROP TRIGGER IF EXISTS TrainerOnlyOneCoursePerDay
 GO
-ALTER TRIGGER TrainerOnlyCoursePerDay
+CREATE TRIGGER TrainerOnlyOneCoursePerDay
 ON offr
-AFTER insert, update
+AFTER INSERT, UPDATE
 AS
 BEGIN
 IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
-    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+    IF EXISTS(SELECT 1 FROM offr WHERE trainer IS NOT NULL GROUP BY trainer, starts HAVING COUNT(*) > 1)
+	BEGIN
+    ;THROW 50000,'Person can only give 1 course on a day',1
+	END
 END TRY
 BEGIN CATCH
   ;THROW
@@ -316,21 +345,25 @@ END
 
 
 /* 5. At least half of the course offerings (measured by duration) taught by a trainer must be ‘home based’. Note: ‘Home based’ means the course is offered at the same location where the employee is employed. */
-# need stored procedure
 GO
-DROP TRIGGER IF EXISTS TrainerWorksFromHome
+DROP TRIGGER IF EXISTS TrainerTeachesFromHome
 GO
-ALTER TRIGGER TrainerWorksFromHome
+CREATE TRIGGER TrainerTeachesFromHome
 ON offr
-AFTER insert, update
+AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
 IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
-    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+    IF EXISTS(SELECT trainer,SUM(dur) FROM offr o join crs c on o.course = c.code
+			GROUP BY trainer HAVING SUM(dur)/2 >
+			(SELECT SUM(dur) FROM crs join offr on offr.course = crs.code join emp on offr.trainer = emp.empno join dept on emp.deptno = dept.deptno
+			WHERE offr.trainer = o.trainer AND offr.loc = dept.loc))
+	BEGIN
+		;THROW 50000,'Teacher needs to teach atleast 50% of his time at home office',1
+	END
 END TRY
 BEGIN CATCH
   ;THROW
@@ -345,24 +378,23 @@ your job type is trainer and
 GO
 DROP TRIGGER IF EXISTS TrainerQualified
 GO
-ALTER TRIGGER TrainerQualified
+CREATE TRIGGER TrainerQualified
 ON offr
-AFTER insert, update
+AFTER INSERT, UPDATE
 AS
 BEGIN
 IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    if(exists(select 1 from inserted where gender != 'M' and fatherid is not null))
-    ;THROW 50000,'Persoon kan geen vader zijn want is geen man',1;
+	IF EXISTS(SELECT trainer FROM offr join emp on trainer = empno WHERE job != 'TRAINER')
+	OR EXISTS (SELECT trainer FROM offr join emp on trainer = empno WHERE DATEDIFF(year, hired, GETDATE()) < 1
+					AND NOT EXISTS(SELECT 1 FROM reg WHERE stud = trainer AND reg.course = offr.course))
+	BEGIN
+		;THROW 50000,'Person needs to attend the course or be employed for 1 year as a teacher to teach a course',1
+	END
 END TRY
 BEGIN CATCH
   ;THROW
 END CATCH
 END
-
-
-
-
-alter table offr add constraint offr_chk_allowed CHECK((job type='TRAINER'AND employement>1year) OR check reg if you attended course)
