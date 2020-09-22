@@ -226,14 +226,12 @@ BEGIN TRY
 	-- make special construction for delete
 	--IF DELETE() if no admin is deleted
 
-    IF UPDATE(deptno) OR UPDATE(job) -- need to make this smarter
+    --IF UPDATE(deptno) OR UPDATE(job) -- need to make this smarter
     BEGIN
-		IF EXISTS(SELECT 1 FROM emp WHERE deptno IN (
-		SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno WHERE job = 'MANAGER' OR job = 'PRESIDENT' GROUP BY d.deptno
-			)
-		AND job = 'ADMIN'
-		GROUP BY deptno
-		HAVING COUNT(*) = 0
+		IF EXISTS(
+			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno WHERE job = 'MANAGER' OR job = 'PRESIDENT' GROUP BY d.deptno
+			EXCEPT
+			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno WHERE job = 'ADMIN' GROUP BY d.deptno
 		)
 		BEGIN
 		;THROW 50000,'Every department that employs a manager or president must have atleast one administrator',1
@@ -244,6 +242,11 @@ BEGIN CATCH
   ;THROW
 END CATCH
 END
+/*
+begin tran
+UPDATE emp SET job='SALESREP' WHERE empno = 1004
+rollback tran
+*/
 /*
 go
 create proc SP_insertEmp       @empno numeric(4), @ename varchar(8), @job varchar(9), @born date,
@@ -320,7 +323,9 @@ SELECT @upperLimit = MIN(ulimit)
 
 
 /* 4. The start date and known trainer uniquely identify course offerings. replace the unique key on startdate and trainer Note. no filtered index */
-# need stored procedure to fetch all trainer startdate combinations where trainer IS NOT NULL
+-- need stored procedure to fetch all trainer startdate combinations where trainer IS NOT NULL
+alter table offr
+drop constraint ofr_unq
 GO
 DROP TRIGGER IF EXISTS TrainerOnlyOneCoursePerDay
 GO
@@ -362,7 +367,7 @@ BEGIN TRY
 			(SELECT SUM(dur) FROM crs join offr on offr.course = crs.code join emp on offr.trainer = emp.empno join dept on emp.deptno = dept.deptno
 			WHERE offr.trainer = o.trainer AND offr.loc = dept.loc))
 	BEGIN
-		;THROW 50000,'Teacher needs to teach atleast 50% of his time at home office',1
+		;THROW 50000,'Teacher needs to teach atleast 50 percent of his time at home office',1
 	END
 END TRY
 BEGIN CATCH
