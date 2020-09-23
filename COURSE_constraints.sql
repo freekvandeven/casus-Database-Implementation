@@ -242,34 +242,78 @@ BEGIN CATCH
   ;THROW
 END CATCH
 END
-/*
-begin tran
-UPDATE emp SET job='SALESREP' WHERE empno = 1004
-rollback tran
-*/
-/*
-go
-create proc SP_insertEmp       @empno numeric(4), @ename varchar(8), @job varchar(9), @born date,
-                               @hired date, @sgrade numeric(2), @msal numeric(7,2), @username varchar(15), @deptno numeric(2)
-as
-begin
-    set nocount on
-    begin try
-        if @job = 'President'
-            if (exists(select * from emp e join term t on e.empno=t.empno where hired > leftcomp and job = 'President') OR
-                exists(select empno from emp where job = 'President' except select empno from term))
-            throw 50000, 'there is currently a President already', 1
-        insert into emp (empno,ename,job,born,hired,sgrade,msal,username,deptno)
-        values(@empno,@ename,@job,@born,@hired,@sgrade,@msal,@username,@deptno)
-    end try
-    begin catch
-    throw
-    end catch
-end
-go
-*/
 
+-- 3 stored procedures to insert,update and delete employees
+GO
+DROP PROCEDURE IF EXISTS SP_InsertEmployee
+GO
+CREATE PROCEDURE SP_InsertEmployee
+@empno numeric(4), @ename varchar(8),
+@job varchar(9), @born date,
+@hired date, @sgrade numeric(2),
+@msal numeric(7,2), @username varchar(15),
+@deptno numeric(2)
+AS
+BEGIN
+    SET NOCOUNT ON
+    BEGIN TRY
+        IF (@job = 'MANAGER' OR @job ='PRESIDENT') AND NOT EXISTS(SELECT 1 FROM emp WHERE deptno = @deptno AND job = 'ADMIN')
+        BEGIN
+            ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
+        END
+        INSERT INTO emp (empno,ename,job,born,hired,sgrade,msal,username,deptno)
+        VALUES(@empno,@ename,@job,@born,@hired,@sgrade,@msal,@username,@deptno)
+    END TRY
+    BEGIN CATCH
+      ; THROW
+    END CATCH
+END
 
+GO
+DROP PROCEDURE IF EXISTS SP_UpdateEmployee
+GO
+CREATE PROCEDURE SP_UpdateEmployee
+@empno numeric(4), @ename varchar(8),
+@job varchar(9), @born date,
+@hired date, @sgrade numeric(2),
+@msal numeric(7,2), @username varchar(15),
+@deptno numeric(2)
+AS
+BEGIN
+    SET NOCOUNT ON
+    BEGIN TRY
+    IF(@job != 'ADMIN' AND
+      (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(*) FROM emp WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' GROUP BY deptno)<2)
+      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT * FROM emp WHERE job = 'ADMIN' AND deptno = @deptno))))
+    BEGIN
+      ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
+    END
+    UPDATE emp SET ename = @ename, job = @job, born = @born, hired = @hired, sgrade = @sgrade, msal = @msal, username = @username, deptno = @deptno WHERE empno = @empno
+    END TRY
+    BEGIN CATCH
+      ;THROW
+    END CATCH
+END
+
+GO
+DROP PROCEDURE IF EXISTS SP_DeleteEmployee
+GO
+CREATE PROCEDURE SP_DeleteEmployee
+@empno numeric(4)
+AS
+BEGIN
+    SET NOCOUNT ON
+    BEGIN TRY
+        IF((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND SELECT COUNT(*) FROM emp WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' GROUP BY deptno)<2)
+            BEGIN
+                ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
+            END
+        DELETE FROM emp WHERE empno = @empno
+    END TRY
+    BEGIN CATCH
+      ; THROW
+    END CATCH
+END
 
 /* 2. The company hires adult personnel only. */
 
@@ -307,20 +351,6 @@ BEGIN CATCH
 END CATCH
 END
 GO
-
-
-/* get MAX(llimit) van alle grades < current salary grade, dit moet lager zijn dan Llimit en hetzelfde geldt voor de upper limit */
-
-
-SELECT @lowerLimit = MAX(llimit)
-  FROM COURSE.dbo.grd
-    WHERE grade < @salaryID
-
-SELECT @upperLimit = MIN(ulimit)
-  FROM COURSE.dbo.grd
-    WHERE grade < @salaryID
-
-
 
 /* 4. The start date and known trainer uniquely identify course offerings. replace the unique key on startdate and trainer Note. no filtered index */
 -- need stored procedure to fetch all trainer startdate combinations where trainer IS NOT NULL
