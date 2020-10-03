@@ -244,35 +244,8 @@ END CATCH
 END
 
 -- 3 stored procedures to insert,update and delete employees
-GO
-DROP PROCEDURE IF EXISTS SP_InsertEmployee
-GO
-CREATE PROCEDURE SP_InsertEmployee
-@empno numeric(4), @ename varchar(8),
-@job varchar(9), @born date,
-@hired date, @sgrade numeric(2),
-@msal numeric(7,2), @username varchar(15),
-@deptno numeric(2)
-AS
-BEGIN
-    SET NOCOUNT ON
-    BEGIN TRY
-        IF (@job = 'MANAGER' OR @job ='PRESIDENT') AND NOT EXISTS(SELECT 1 FROM emp WHERE deptno = @deptno AND job = 'ADMIN')
-        BEGIN
-            ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
-        END
-        INSERT INTO emp (empno,ename,job,born,hired,sgrade,msal,username,deptno)
-        VALUES(@empno,@ename,@job,@born,@hired,@sgrade,@msal,@username,@deptno)
-    END TRY
-    BEGIN CATCH
-      ; THROW
-    END CATCH
-END
 
-GO
-DROP PROCEDURE IF EXISTS SP_UpdateEmployee
-GO
-CREATE PROCEDURE SP_UpdateEmployee
+CREATE OR ALTER PROCEDURE SP_InsertEmployee
 @empno numeric(4), @ename varchar(8),
 @job varchar(9), @born date,
 @hired date, @sgrade numeric(2),
@@ -280,8 +253,57 @@ CREATE PROCEDURE SP_UpdateEmployee
 @deptno numeric(2)
 AS
 BEGIN
-    SET NOCOUNT ON
-    BEGIN TRY
+	DECLARE @savepoint varchar(128)= CAST(OBJECT_NAME(@@PROCID) AS varchar(125)) + CAST(@@NESTLEVEL AS varchar(3)); --= truc
+	DECLARE @startTrancount int = @@TRANCOUNT;
+	SET NOCOUNT ON;
+	BEGIN TRY
+		BEGIN TRANSACTION;
+		SAVE TRANSACTION @savepoint;
+		----------------------------------------
+    IF (@job = 'MANAGER' OR @job ='PRESIDENT') AND NOT EXISTS(SELECT 1 FROM emp WHERE deptno = @deptno AND job = 'ADMIN')
+    BEGIN
+        ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
+    END
+    INSERT INTO emp (empno,ename,job,born,hired,sgrade,msal,username,deptno)
+    VALUES(@empno,@ename,@job,@born,@hired,@sgrade,@msal,@username,@deptno)
+		----------------------------------------
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		IF XACT_STATE() = -1 AND @startTrancount = 0
+		BEGIN
+			ROLLBACK TRANSACTION
+		END
+		ELSE
+		BEGIN
+			IF XACT_STATE() = 1
+			BEGIN
+				ROLLBACK TRANSACTION @savepoint;
+				COMMIT TRANSACTION;
+			END;
+		END;
+		DECLARE @errormessage varchar(2000);
+		SET @errormessage = 'Error occured in sproc ''' + OBJECT_NAME(@@procid) + '''. Original message: ''' + ERROR_MESSAGE() + '''';
+		THROW 50000, @errormessage, 1;
+	END CATCH;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_UpdateEmployee
+@empno numeric(4), @ename varchar(8),
+@job varchar(9), @born date,
+@hired date, @sgrade numeric(2),
+@msal numeric(7,2), @username varchar(15),
+@deptno numeric(2)
+AS
+BEGIN
+	DECLARE @savepoint varchar(128)= CAST(OBJECT_NAME(@@PROCID) AS varchar(125)) + CAST(@@NESTLEVEL AS varchar(3)); --= truc
+	DECLARE @startTrancount int = @@TRANCOUNT;
+	SET NOCOUNT ON;
+	BEGIN TRY
+		BEGIN TRANSACTION;
+		SAVE TRANSACTION @savepoint;
+		----------------------------------------
     IF(@job != 'ADMIN' AND
       (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(*) FROM emp WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' GROUP BY deptno)<2)
       OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT * FROM emp WHERE job = 'ADMIN' AND deptno = @deptno))))
@@ -289,31 +311,67 @@ BEGIN
       ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
     END
     UPDATE emp SET ename = @ename, job = @job, born = @born, hired = @hired, sgrade = @sgrade, msal = @msal, username = @username, deptno = @deptno WHERE empno = @empno
-    END TRY
-    BEGIN CATCH
-      ;THROW
-    END CATCH
-END
+		----------------------------------------
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		IF XACT_STATE() = -1 AND @startTrancount = 0
+		BEGIN
+			ROLLBACK TRANSACTION
+		END
+		ELSE
+		BEGIN
+			IF XACT_STATE() = 1
+			BEGIN
+				ROLLBACK TRANSACTION @savepoint;
+				COMMIT TRANSACTION;
+			END;
+		END;
+		DECLARE @errormessage varchar(2000);
+		SET @errormessage = 'Error occured in sproc ''' + OBJECT_NAME(@@procid) + '''. Original message: ''' + ERROR_MESSAGE() + '''';
+		THROW 50000, @errormessage, 1;
+	END CATCH;
+END;
+GO
 
-GO
-DROP PROCEDURE IF EXISTS SP_DeleteEmployee
-GO
-CREATE PROCEDURE SP_DeleteEmployee
+CREATE OR ALTER PROCEDURE SP_DeleteEmployee
 @empno numeric(4)
 AS
 BEGIN
-    SET NOCOUNT ON
-    BEGIN TRY
-        IF((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND SELECT COUNT(*) FROM emp WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' GROUP BY deptno)<2)
-            BEGIN
-                ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
-            END
-        DELETE FROM emp WHERE empno = @empno
-    END TRY
-    BEGIN CATCH
-      ; THROW
-    END CATCH
-END
+	DECLARE @savepoint varchar(128)= CAST(OBJECT_NAME(@@PROCID) AS varchar(125)) + CAST(@@NESTLEVEL AS varchar(3)); --= truc
+	DECLARE @startTrancount int = @@TRANCOUNT;
+	SET NOCOUNT ON;
+	BEGIN TRY
+		BEGIN TRANSACTION;
+		SAVE TRANSACTION @savepoint;
+		----------------------------------------
+    IF((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND SELECT COUNT(*) FROM emp WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' GROUP BY deptno)<2)
+        BEGIN
+            ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
+        END
+    DELETE FROM emp WHERE empno = @empno
+		----------------------------------------
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		IF XACT_STATE() = -1 AND @startTrancount = 0
+		BEGIN
+			ROLLBACK TRANSACTION
+		END
+		ELSE
+		BEGIN
+			IF XACT_STATE() = 1
+			BEGIN
+				ROLLBACK TRANSACTION @savepoint;
+				COMMIT TRANSACTION;
+			END;
+		END;
+		DECLARE @errormessage varchar(2000);
+		SET @errormessage = 'Error occured in sproc ''' + OBJECT_NAME(@@procid) + '''. Original message: ''' + ERROR_MESSAGE() + '''';
+		THROW 50000, @errormessage, 1;
+	END CATCH;
+END;
+GO
 
 /* 2. The company hires adult personnel only. */
 
