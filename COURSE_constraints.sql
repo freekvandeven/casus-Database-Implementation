@@ -229,9 +229,9 @@ BEGIN TRY
     --IF UPDATE(deptno) OR UPDATE(job) -- need to make this smarter
     BEGIN
 		IF EXISTS(
-			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno join term t on e.empno=t.empno WHERE t.leftcomp < e.hired and (job = 'MANAGER' OR job = 'PRESIDENT') GROUP BY d.deptno
+			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno left join term t on e.empno=t.empno WHERE isnull(t.leftcomp,'1753-1-1') < e.hired and (job = 'MANAGER' OR job = 'PRESIDENT') GROUP BY d.deptno
 			EXCEPT
-			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno join term t on e.empno=t.empno WHERE t.leftcomp < e.hired and job = 'ADMIN' GROUP BY d.deptno
+			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno left join term t on e.empno=t.empno WHERE isnull(t.leftcomp,'1753-1-1') < e.hired and job = 'ADMIN' GROUP BY d.deptno
 		)
 		BEGIN
 		;THROW 50000,'Every department that employs a manager or president must have atleast one administrator',1
@@ -260,7 +260,7 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
-    IF (@job = 'MANAGER' OR @job ='PRESIDENT') AND NOT EXISTS(SELECT 1 FROM emp e join term t on e.empno=t.empno  WHERE deptno = @deptno AND job = 'ADMIN' and t.leftcomp < e.hired)
+    IF (@job = 'MANAGER' OR @job ='PRESIDENT') AND NOT EXISTS(SELECT 1 FROM emp e left join term t on e.empno=t.empno  WHERE deptno = @deptno AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired)
     BEGIN
         ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
     END
@@ -307,8 +307,8 @@ BEGIN
 		--was I the only one in my department? bad/good
 		--I won't become a president/manager? good/is there an admin in the department I'm assigned to? good/bad
     IF(@job != 'ADMIN' AND
-      (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(e.empno) FROM emp e join term t on t.empno=e.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and t.leftcomp < e.hired GROUP BY deptno)<2)
-      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT e.empno FROM emp e join term t on t.empno=e.empno WHERE job = 'ADMIN' AND deptno = @deptno and t.leftcomp < e.hired))))
+      (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(e.empno) FROM emp e left join term t on t.empno=e.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2)
+      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT e.empno FROM emp e left join term t on t.empno=e.empno WHERE job = 'ADMIN' AND deptno = @deptno and isnull(t.leftcomp,'1753-1-1') < e.hired))))
     BEGIN
       ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
     END
@@ -347,7 +347,7 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
-    IF((SELECT job FROM emp e join term t on t.empno=e.empno WHERE e.empno = @empno and t.leftcomp < e.hired) = 'ADMIN' AND (SELECT COUNT(*) FROM emp e join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and t.leftcomp < e.hired GROUP BY deptno)<2)
+    IF((SELECT job FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired) = 'ADMIN' AND (SELECT COUNT(*) FROM emp e right join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2)
         BEGIN
             ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
         END
@@ -487,7 +487,7 @@ BEGIN TRY
 		;THROW 50000,'Person is not a trainer.',1
 	END
 	-- interpreted as at worked here at least one year since last hire date
-	IF EXISTS (SELECT trainer FROM offr join emp e on trainer = empno join term t on e.empno = t.empno WHERE DATEDIFF(year, hired, GETDATE()) < 1 and t.leftcomp < e.hired
+	IF EXISTS (SELECT trainer FROM offr join emp e on trainer = empno left join term t on e.empno = t.empno WHERE DATEDIFF(year, hired, GETDATE()) < 1 and isnull(t.leftcomp,'1753-1-1') < e.hired
 					AND NOT EXISTS(SELECT 1 FROM reg WHERE stud = trainer AND reg.course = offr.course))
 	BEGIN
 		;THROW 50000,'Person needs to attend the course or be employed for 1 year as a teacher to teach a course',1
