@@ -288,7 +288,6 @@ BEGIN
 	END CATCH;
 END;
 GO
-
 CREATE OR ALTER PROCEDURE SP_UpdateEmployee
 @empno numeric(4), @ename varchar(8),
 @job varchar(9), @born date,
@@ -304,9 +303,12 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
+		--ik was admin en nu niet meer 
+		--was ik de enige? bad/goed
+		--ik wordt geen president/manager? goed/zit er een admin in de dept waar ik inkom? goed/bad
     IF(@job != 'ADMIN' AND
-      (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(*) FROM emp WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' GROUP BY deptno)<2)
-      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT * FROM emp WHERE job = 'ADMIN' AND deptno = @deptno))))
+      (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(e.empno) FROM emp e join term t on t.empno=e.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and t.leftcomp<e.hired GROUP BY deptno)<2)
+      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT e.empno FROM emp e join term t on t.empno=e.empno WHERE job = 'ADMIN' AND deptno = @deptno and t.leftcomp<e.hired))))
     BEGIN
       ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
     END
