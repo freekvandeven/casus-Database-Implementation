@@ -227,6 +227,7 @@ BEGIN TRY
 	--IF DELETE() if no admin is deleted
 
     --IF UPDATE(deptno) OR UPDATE(job) -- need to make this smarter
+	--could use instead of isnull AND (e.empno NOT IN (select empno from term) OR EXISTS (select empno from term where e.hired > leftcomp))
     BEGIN
 		IF EXISTS(
 			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno left join term t on e.empno=t.empno WHERE isnull(t.leftcomp,'1753-1-1') < e.hired and (job = 'MANAGER' OR job = 'PRESIDENT') GROUP BY d.deptno
