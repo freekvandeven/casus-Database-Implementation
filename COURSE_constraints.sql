@@ -304,7 +304,7 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
-		--I was admin but not anymore 
+		--I was admin but not anymore
 		--was I the only one in my department? bad/good
 		--I won't become a president/manager? good/is there an admin in the department I'm assigned to? good/bad
     IF(@job != 'ADMIN' AND
@@ -502,6 +502,10 @@ GO
 
 
 
+
+
+
+
 /*------------------------------------------------------------------------------------------------
 E - CODE GENERATION
 ------------------------------------------------------------------------------------------------*/
@@ -512,18 +516,18 @@ AS
 BEGIN
 	DECLARE @SQL NVARCHAR(MAX) = 'CREATE TABLE HIST_' + @tablename + ' (timestamp TIMESTAMP NOT NULL'
 	EXEC ('DROP TABLE IF EXISTS HIST_' + @tablename)
-	SELECT @SQL = @SQL + ', ' + COLUMN_NAME + ' ' + DATA_TYPE + CASE 
-	WHEN DATA_TYPE = 'VARCHAR' THEN '(' + CAST(CHARACTER_MAXIMUM_LENGTH AS VARCHAR) + ')' 
+	SELECT @SQL = @SQL + ', ' + COLUMN_NAME + ' ' + DATA_TYPE + CASE
+	WHEN DATA_TYPE = 'VARCHAR' THEN '(' + CAST(CHARACTER_MAXIMUM_LENGTH AS VARCHAR) + ')'
 	WHEN DATA_TYPE = 'NUMERIC' THEN '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')'
 	ELSE '' END +
 	CASE WHEN IS_NULLABLE = 'NO' THEN ' NOT NULL' ELSE ' NULL' END
-	
+
 	FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @tablename
-	SET @SQL = @SQL + ')' 
+	SET @SQL = @SQL + ')'
 	EXEC (@SQL)
 
 	-- add primary key
-	SET @SQL = 'ALTER TABLE HIST_' + @tablename + ' ADD PRIMARY KEY (timestamp' 
+	SET @SQL = 'ALTER TABLE HIST_' + @tablename + ' ADD PRIMARY KEY (timestamp'
 	SELECT @SQL = @SQL + ', ' + COLUMN_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS itc JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE icc
 	ON itc.CONSTRAINT_NAME = icc.CONSTRAINT_NAME WHERE CONSTRAINT_TYPE = 'PRIMARY KEY' AND itc.TABLE_NAME = @tablename
 	SET @SQL = @SQL + ')'
@@ -540,19 +544,19 @@ BEGIN
 	SET @QUERY = LEFT(@QUERY, LEN(@QUERY) -1) + ')'
 
 	DECLARE @SQL NVARCHAR(MAX) = '
-			CREATE OR ALTER TRIGGER TRG_' + @tablename + '_FILLHISTORY 
+			CREATE OR ALTER TRIGGER TRG_' + @tablename + '_FILLHISTORY
 			ON dbo.' + @tablename + '
 			AFTER INSERT, UPDATE, DELETE
-			AS 
+			AS
 			BEGIN
 				SET NOCOUNT ON;
 				IF EXISTS(SELECT * FROM DELETED)
 				BEGIN
 					IF EXISTS(SELECT * FROM INSERTED) ' + @QUERY + ' SELECT * FROM Inserted
-					ELSE ' + @QUERY + ' SELECT * FROM Deleted       
+					ELSE ' + @QUERY + ' SELECT * FROM Deleted
 				END
 				ELSE
-				' + @QUERY + ' SELECT * FROM Inserted 
+				' + @QUERY + ' SELECT * FROM Inserted
 			END'
 	EXEC (@SQL)
 END
@@ -571,11 +575,11 @@ BEGIN
 	BEGIN
 		-- loop through all the tables
 		SELECT @tableName = TABLE_NAME
-		FROM INFORMATION_SCHEMA.TABLES 
+		FROM INFORMATION_SCHEMA.TABLES
 		WHERE TABLE_SCHEMA = 'dbo' AND TABLE_TYPE = 'BASE TABLE' AND NOT TABLE_NAME LIKE 'HIST_%'
 		ORDER BY TABLE_NAME
 		OFFSET @cursor ROWS
-		FETCH NEXT 1 ROWS only 
+		FETCH NEXT 1 ROWS only
 
 		-- run 2 stored procedures for every table in the database
 		EXEC sp_CreateHistoryTable @tableName
@@ -595,48 +599,4 @@ INSERT INTO HIST_emp (empno, ename, job,born,hired,sgrade,msal,username, deptno)
 SELECT * FROM emp
 SELECT * FROM HIST_emp
 DELETE FROM emp WHERE empno = 1664
-INSERT INTO emp VALUES(1664, 'Chris', 'ADMIN', '2001-09-11', '2019-09-12', 2,2400,'MONGOOL4',10) 
-
-
-
-
-/*------------------------------------------------------------------------------------------------
-F - SECURITY
-------------------------------------------------------------------------------------------------*/
-
-
--- create employee user
-GO
-CREATE LOGIN [Employee] WITH PASSWORD=N'klootviool', DEFAULT_DATABASE=[COURSE]
-CREATE USER [Employee] FOR LOGIN [Employee]
--- make this a role instead?
-
-
--- give permission for data
-GRANT EXECUTE ON dbo.reg TO Employee
-GRANT SELECT ON dbo.emp TO Employee
-GRANT SELECT ON dbo.offr TO Employee
-
-
--- create reporting user
-CREATE LOGIN [Reporting] WITH PASSWORD=N'kutverslag', DEFAULT_DATABASE=[COURSE]
-CREATE USER [Reporting] FOR LOGIN [Reporting]
-
-GRANT SELECT ON SCHEMA :: [dbo] TO Reporting
-
-
--- testen van security policy
-
--- test empolyee account
-EXECUTE AS USER = 'Employee'
-
--- test full access Reg table
-
--- test read access emp & offr table
-
-
-
--- test reporting account
-EXECUTE AS USER = 'Reporting'
-
-INSERT INTO dbo.grd VALUES(12,12000,17000,6000)
+INSERT INTO emp VALUES(1664, 'Chris', 'ADMIN', '2001-09-11', '2019-09-12', 2,2400,'MONGOOL4',10)
