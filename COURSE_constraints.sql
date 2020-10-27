@@ -501,7 +501,6 @@ END
 GO
 
 /* 4. The start date and known trainer uniquely identify course offerings. replace the unique key on startdate and trainer Note. no filtered index */
--- need stored procedure to fetch all trainer startdate combinations where trainer IS NOT NULL
 alter table offr
 drop constraint ofr_unq
 GO
@@ -516,7 +515,8 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    IF EXISTS(SELECT 1 FROM offr WHERE trainer IS NOT NULL GROUP BY trainer, starts HAVING COUNT(*) > 1)
+	--IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
+    IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
 	BEGIN
     ;THROW 50000,'Person can only give 1 course on a day',1
 	END
@@ -528,6 +528,7 @@ END
 
 
 /* 5. At least half of the course offerings (measured by duration) taught by a trainer must be ‘home based’. Note: ‘Home based’ means the course is offered at the same location where the employee is employed. */
+-- veel werk om met inserted/deleted op te splitsen
 GO
 DROP TRIGGER IF EXISTS TrainerTeachesFromHome
 GO
