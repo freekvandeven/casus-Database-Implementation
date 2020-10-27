@@ -243,6 +243,91 @@ BEGIN CATCH
   ;THROW
 END CATCH
 END
+GO
+DROP TRIGGER IF EXISTS DepartmentAdministratorPresidentInsert
+GO
+CREATE TRIGGER DepartmentAdministratorPresidentInsert
+ON emp
+AFTER INSERT
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+
+    BEGIN
+		IF (EXISTS(SELECT 1 FROM inserted i WHERE (job = 'MANAGER' OR  job = 'PRESIDENT') 
+		AND NOT EXISTS(SELECT 1 FROM emp e LEFT JOIN term t on t.empno=e.empno where e.deptno = i.deptno AND e.job ='ADMIN' AND isnull(t.leftcomp,'1753-1-1') < e.hired)))
+		BEGIN
+		;THROW 50000,'Every department that employs a manager or president must have atleast one administrator',1
+		END
+    END
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+GO
+DROP TRIGGER IF EXISTS DepartmentAdministratorPresidentUpdate
+GO
+CREATE TRIGGER DepartmentAdministratorPresidentUpdate
+ON emp
+AFTER UPDATE
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+
+    BEGIN
+		IF (EXISTS(SELECT 1 FROM inserted i WHERE (job = 'MANAGER' OR  job = 'PRESIDENT') 
+		AND NOT EXISTS(
+		SELECT 1 FROM emp e LEFT JOIN term t ON t.empno=e.empno WHERE e.deptno = i.deptno AND e.job ='ADMIN' AND isnull(t.leftcomp,'1753-1-1') < e.hired))
+
+		OR EXISTS(SELECT 1 FROM deleted d WHERE job = 'ADMIN' AND NOT EXISTS(
+			SELECT 1 FROM emp e LEFT JOIN term t ON t.empno = e.empno WHERE d.deptno = e.deptno AND e.job ='ADMIN' AND isnull(t.leftcomp,'1753-1-1') < e.hired)
+															  AND	  EXISTS(
+			SELECT 1 FROM emp e LEFT JOIN term t ON t.empno = e.empno WHERE d.deptno = e.deptno AND (e.job ='MANAGER' OR e.job = 'PRESIDENT') AND isnull(t.leftcomp,'1753-1-1') < e.hired)))
+		BEGIN
+		;THROW 50000,'Every department that employs a manager or president must have atleast one administrator',1
+		END
+    END
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+GO
+
+DROP TRIGGER IF EXISTS DepartmentAdministratorPresidentDelete
+GO
+CREATE TRIGGER DepartmentAdministratorPresidentDelete
+ON emp
+AFTER DELETE
+AS
+BEGIN
+IF @@ROWCOUNT=0
+    RETURN
+SET NOCOUNT ON
+BEGIN TRY
+
+    BEGIN
+		IF (EXISTS(SELECT 1 FROM deleted d WHERE job = 'ADMIN' AND NOT EXISTS(
+			SELECT 1 FROM emp e LEFT JOIN term t ON t.empno = e.empno WHERE d.deptno = e.deptno AND e.job ='ADMIN' AND isnull(t.leftcomp,'1753-1-1') < e.hired)
+															   AND	   EXISTS(
+			SELECT 1 FROM emp e LEFT JOIN term t ON t.empno = e.empno WHERE d.deptno = e.deptno AND (e.job ='MANAGER' OR e.job = 'PRESIDENT') AND isnull(t.leftcomp,'1753-1-1') < e.hired)))
+		BEGIN
+		;THROW 50000,'Every department that employs a manager or president must have atleast one administrator',1
+		END
+    END
+END TRY
+BEGIN CATCH
+  ;THROW
+END CATCH
+END
+GO
 
 -- 3 stored procedures to insert,update and delete employees
 
@@ -309,7 +394,7 @@ BEGIN
 		--I won't become a president/manager? good/is there an admin in the department I'm assigned to? good/bad
     IF(@job != 'ADMIN' AND
       (((SELECT job FROM emp WHERE empno = @empno) = 'ADMIN' AND (SELECT COUNT(e.empno) FROM emp e left join term t on t.empno=e.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2)
-      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT e.empno FROM emp e left join term t on t.empno=e.empno WHERE job = 'ADMIN' AND deptno = @deptno and isnull(t.leftcomp,'1753-1-1') < e.hired))))
+      OR ((@job = 'PRESIDENT' OR @job = 'MANAGER') AND NOT EXISTS(SELECT 1 FROM emp e left join term t on t.empno=e.empno WHERE job = 'ADMIN' AND deptno = @deptno and isnull(t.leftcomp,'1753-1-1') < e.hired))))
     BEGIN
       ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
     END
@@ -348,7 +433,9 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
-    IF((SELECT job FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired) = 'ADMIN' AND (SELECT COUNT(*) FROM emp e right join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2)
+    IF(EXISTS(SELECT 1 FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired AND JOB = 'ADMIN') 
+		AND (SELECT COUNT(e.empno) FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2
+		AND EXISTS (SELECT 1 FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND (job = 'MANAGER' OR job='PRESIDENT') and isnull(t.leftcomp,'1753-1-1') < e.hired))
         BEGIN
             ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
         END
