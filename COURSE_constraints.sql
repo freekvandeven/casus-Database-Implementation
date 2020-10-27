@@ -515,10 +515,7 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-<<<<<<< HEAD
 	--IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
-=======
->>>>>>> 1ec4241edacde40cf0a808eec1e0cf75b50068b7
     IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
 	BEGIN
     ;THROW 50000,'Person can only give 1 course on a day',1
