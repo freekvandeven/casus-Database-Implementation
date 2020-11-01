@@ -422,8 +422,9 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE SP_DeleteEmployee
-@empno numeric(4)
+CREATE OR ALTER PROCEDURE SP_FireEmployee
+@empno numeric(4),
+@comment varchar(255) = null
 AS
 BEGIN
 	DECLARE @savepoint varchar(128)= CAST(OBJECT_NAME(@@PROCID) AS varchar(125)) + CAST(@@NESTLEVEL AS varchar(3)); --= truc
@@ -433,14 +434,20 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
-    IF(EXISTS(SELECT 1 FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired AND JOB = 'ADMIN')
-		AND (SELECT COUNT(e.empno) FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2
-		AND EXISTS (SELECT 1 FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND (job = 'MANAGER' OR job='PRESIDENT') and isnull(t.leftcomp,'1753-1-1') < e.hired))
-        BEGIN
-            ;THROW 50000, 'Every department that employs a manager or president must have atleast one administrator', 1
-        END
-        -- need to remove the foreign keys for empno
-    DELETE FROM emp WHERE empno = @empno
+		IF(EXISTS(SELECT 1 FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired AND JOB = 'ADMIN') 
+			AND (SELECT COUNT(e.empno) FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2
+			AND EXISTS (SELECT 1 FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND (job = 'MANAGER' OR job='PRESIDENT') and isnull(t.leftcomp,'1753-1-1') < e.hired))
+		BEGIN
+			;THROW 50000, 'Every department that employs a manager or president must have at least one administrator', 1
+		END
+		IF(EXISTS(SELECT 1 FROM term where empno = @empno))
+		BEGIN
+			UPDATE term set empno = @empno, leftcomp = getdate(), comment = @comment
+		END
+		ELSE
+		BEGIN
+			INSERT INTO term values(@empno,getdate(),@comment)
+		END
 		----------------------------------------
 		COMMIT TRANSACTION;
 	END TRY
