@@ -434,7 +434,7 @@ BEGIN
 		BEGIN TRANSACTION;
 		SAVE TRANSACTION @savepoint;
 		----------------------------------------
-		IF(EXISTS(SELECT 1 FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired AND JOB = 'ADMIN') 
+		IF(EXISTS(SELECT 1 FROM emp e left join term t on t.empno=e.empno WHERE e.empno = @empno and isnull(t.leftcomp,'1753-1-1') < e.hired AND JOB = 'ADMIN')
 			AND (SELECT COUNT(e.empno) FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND job = 'ADMIN' and isnull(t.leftcomp,'1753-1-1') < e.hired GROUP BY deptno)<2
 			AND EXISTS (SELECT 1 FROM emp e left join term t on e.empno = t.empno WHERE deptno = (SELECT deptno FROM emp WHERE empno = @empno) AND (job = 'MANAGER' OR job='PRESIDENT') and isnull(t.leftcomp,'1753-1-1') < e.hired))
 		BEGIN
@@ -524,7 +524,7 @@ IF @@ROWCOUNT=0
 SET NOCOUNT ON
 BEGIN TRY
 	--IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
-    IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
+    IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer AND i.trainer IS NOT NULL GROUP BY trainer, starts HAVING COUNT(*) > 1))
 	BEGIN
     ;THROW 50000,'Person can only give 1 course on a day',1
 	END
