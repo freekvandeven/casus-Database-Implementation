@@ -11,19 +11,115 @@ EXEC tSQLt.NewTestClass 'testTrainerQualifiedConstraint';
 CONSTRAINT 1
 --------------------------------------------------------*/
 
--- procedure test
-
-
-
--- trigger test
-DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for updating Administrator job]
-GO
-CREATE PROCEDURE [testDepartmentAdminConstraint].[test for updating Administrator job]
+-- procedure test insert employee
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee insert]
+go
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee insert]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp'; --dbo is het default schema igv create table
-	--nu de te testen constraint er weer opzetten, deze bestaat namelijk al
-	--exec tSQLt.FakeTable 'dbo', 'emp',1,1,1
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC [tSQLt].[ExpectException]
+
+	--Zet een gegarandeerd goede eerste president rij in dbo. emp
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+
+	EXEC SP_InsertEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+END;
+go
+
+-- procedure test insert employee
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee insert]
+go
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false employee insert]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC [tSQLt].[ExpectException]
+
+	--Zet een gegarandeerd goede eerste president rij in dbo. emp
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+
+	EXEC SP_InsertEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+END;
+go
+
+-- procedure test update employee
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee update]
+go
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee update]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC [tSQLt].[ExpectException]
+
+	--Zet een gegarandeerd goede eerste president rij in dbo. emp
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+
+	EXEC SP_UpdateEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+END;
+go
+
+-- procedure test update employee
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee update]
+go
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false employee update]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC [tSQLt].[ExpectException]
+
+	--Zet een gegarandeerd goede eerste president rij in dbo. emp
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+
+	EXEC SP_UpdateEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+END;
+go
+
+-- procedure test delete employee
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee delete]
+go
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee delete]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC [tSQLt].[ExpectException]
+
+	--Zet een gegarandeerd goede eerste president rij in dbo. emp
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+
+	EXEC SP_DeleteEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+END;
+go
+
+-- procedure test delete employee
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee delete]
+go
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee delete]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC [tSQLt].[ExpectException]
+
+	--Zet een gegarandeerd goede eerste president rij in dbo. emp
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+
+	EXEC SP_DeleteEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+END;
+go
+
+-- trigger test 1
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct insert]
+GO
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct insert]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
 	EXEC tSQLt.ExpectException
 
@@ -32,20 +128,33 @@ BEGIN
 END
 GO
 
--- trigger test
-DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for updating Administrator job success]
+-- trigger test 2
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false update]
 GO
-CREATE PROCEDURE [testDepartmentAdminConstraint].[test for updating Administrator job success]
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false update]
 AS
 BEGIN
-	--EXEC tSQLt.FakeTable 'dbo', 'emp'; --dbo is het default schema igv create table
-	--nu de te testen constraint er weer opzetten, deze bestaat namelijk al
-	--exec tSQLt.FakeTable 'dbo', 'emp',1,1,1
-	--EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
 	EXEC tSQLt.ExpectNoException
 
 	--actie
 	UPDATE emp SET job='SALESREP' WHERE empno = 1011
+END
+GO
+
+-- trigger test 3
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for bad multi-row insert]
+GO
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for bad multi-row insert]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
+	EXEC tSQLt.ExpectNoException
+
+	--multi-row insert
+	INSERT INTO emp VALUES(),(),()
 END
 GO
 
