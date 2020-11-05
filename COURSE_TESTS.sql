@@ -7,16 +7,24 @@ EXEC tSQLt.NewTestClass 'testTrainerCoursePerDayConstraint';
 EXEC tSQLt.NewTestClass 'testTrainerTeachesFromHomeConstraint';
 EXEC tSQLt.NewTestClass 'testTrainerQualifiedConstraint';
 
---1
+/*--------------------------------------------------------
+CONSTRAINT 1
+--------------------------------------------------------*/
+
+-- procedure test
+
+
+
+-- trigger test
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for updating Administrator job]
 GO
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for updating Administrator job]
 AS
 BEGIN
-	--EXEC tSQLt.FakeTable 'dbo', 'emp'; --dbo is het default schema igv create table
+	EXEC tSQLt.FakeTable 'dbo', 'emp'; --dbo is het default schema igv create table
 	--nu de te testen constraint er weer opzetten, deze bestaat namelijk al
 	--exec tSQLt.FakeTable 'dbo', 'emp',1,1,1
-	--EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
+	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
 	EXEC tSQLt.ExpectException
 
 	--actie
@@ -24,6 +32,7 @@ BEGIN
 END
 GO
 
+-- trigger test
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for updating Administrator job success]
 GO
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for updating Administrator job success]
@@ -40,7 +49,10 @@ BEGIN
 END
 GO
 
---2
+/*--------------------------------------------------------
+CONSTRAINT 2
+--------------------------------------------------------*/
+
 DROP PROCEDURE IF EXISTS testEmployeeAdultConstraint.[test for child labour]
 GO
 CREATE PROCEDURE testEmployeeAdultConstraint.[test for child labour]
@@ -66,12 +78,16 @@ BEGIN
 	values (6969,'daoisjd','SALESREP','1969-12-12','2012-12-12',6,5500,'lkdsjaslk',15)
 END
 
+/*--------------------------------------------------------
+CONSTRAINT 3
+--------------------------------------------------------*/
+
 DROP PROCEDURE IF EXISTS testSalaryGradeConstraint.[test for adult personel future baby]
 GO
 CREATE PROCEDURE testSalaryGradeConstraint.[test for adult personel future baby]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp'; 
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC tSQLt.ApplyConstraint 'emp', 'emp_chk_age'
 	EXEC tSQLt.ExpectException
 
@@ -79,7 +95,6 @@ BEGIN
 	values (6969,'daoisjd','SALESREP','2100-12-12','2012-12-12',6,5500,'lkdsjaslk',15)
 END
 
---3
 DROP PROCEDURE IF EXISTS testSalaryGradeConstraint.[test for incremental salary]
 GO
 CREATE PROCEDURE testSalaryGradeConstraint.[test for incremental salary]
@@ -106,7 +121,10 @@ BEGIN
 	,(12,8000,12000,5000)
 END
 
---4
+/*--------------------------------------------------------
+CONSTRAINT 4
+--------------------------------------------------------*/
+
 DROP PROCEDURE IF EXISTS testTrainerCoursePerDayConstraint.[test trainer only one course per day]
 GO
 CREATE PROCEDURE testTrainerCoursePerDayConstraint.[test trainer only one course per day]
@@ -133,7 +151,10 @@ BEGIN
 	('AM4DP','1998-09-07','CONF',6,1018,'SAN FRANCISCO')
 END
 
---5
+/*--------------------------------------------------------
+CONSTRAINT 5
+--------------------------------------------------------*/
+
 DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based]
 GO
 CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based]
@@ -154,7 +175,10 @@ BEGIN
 	values ('AM4DP','1998-09-09','CONF',6,1016,'SAN FRANCISCO') -- 10 hour course at home makes it so this trainer does qualify now
 END
 
---6
+/*--------------------------------------------------------
+CONSTRAINT 6
+--------------------------------------------------------*/
+
 DROP PROCEDURE IF EXISTS testTrainerQualifiedConstraint.[test emp doesn't have trainer as his job]
 GO
 CREATE PROCEDURE testTrainerQualifiedConstraint.[test emp doesn't have trainer as his job]
@@ -178,7 +202,7 @@ BEGIN
 	EXEC tSQLt.ExpectException
 
 insert into emp values(1034,'dshkdsa','TRAINER','1965-03-21','2020-07-22',4,4000,'sdkaljda',15) -- nieuwe trainer die hier nog geen jaar werkt
-insert into offr values('APEX','1998-09-11','CONF',6,1034,'AMSTERDAM') -- wordt ook in de offr tabel gezet 
+insert into offr values('APEX','1998-09-11','CONF',6,1034,'AMSTERDAM') -- wordt ook in de offr tabel gezet
 END
 
 DROP PROCEDURE IF EXISTS testTrainerQualifiedConstraint.[test at least halve the courses are home based success]

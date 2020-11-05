@@ -42,9 +42,9 @@ BEGIN
 			AS
 			BEGIN
 				SET NOCOUNT ON;
-				IF EXISTS(SELECT * FROM DELETED)
+				IF EXISTS(SELECT 1 FROM DELETED)
 				BEGIN
-					IF EXISTS(SELECT * FROM INSERTED) ' + @QUERY + ' SELECT * FROM Inserted
+					IF EXISTS(SELECT 1 FROM INSERTED) ' + @QUERY + ' SELECT * FROM Inserted
 					ELSE ' + @QUERY + ' SELECT * FROM Deleted
 				END
 				ELSE
@@ -91,4 +91,4 @@ INSERT INTO HIST_emp (empno, ename, job,born,hired,sgrade,msal,username, deptno)
 SELECT * FROM emp
 SELECT * FROM HIST_emp
 DELETE FROM emp WHERE empno = 1664
-INSERT INTO emp VALUES(1664, 'Chris', 'ADMIN', '2001-09-11', '2019-09-12', 2,2400,'MONGOOL4',10)
+INSERT INTO emp VALUES(1664, 'Freek', 'ADMIN', '2001-09-11', '2019-09-12', 2, 2400,'qwerty',10)
