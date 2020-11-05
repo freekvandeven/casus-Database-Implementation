@@ -57,27 +57,13 @@ GO
 CREATE OR ALTER PROCEDURE sp_CreateHistory
 AS
 BEGIN
-	DECLARE @SQL NVARCHAR(MAX) = ''
-	DECLARE @rowAmount INT;
-	DECLARE @cursor INT = 0;
-	DECLARE @tableName VARCHAR(255);
-	--get total amount of tables excluding History tables
-	SELECT @rowAmount = COUNT(TABLE_NAME) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_TYPE = 'BASE TABLE' AND NOT TABLE_NAME LIKE 'HIST_%'
-	WHILE @cursor < @rowAmount
-	BEGIN
-		-- loop through all the tables
-		SELECT @tableName = TABLE_NAME
-		FROM INFORMATION_SCHEMA.TABLES
-		WHERE TABLE_SCHEMA = 'dbo' AND TABLE_TYPE = 'BASE TABLE' AND NOT TABLE_NAME LIKE 'HIST_%'
-		ORDER BY TABLE_NAME
-		OFFSET @cursor ROWS
-		FETCH NEXT 1 ROWS only
-
-		-- run 2 stored procedures for every table in the database
-		EXEC sp_CreateHistoryTable @tableName
-		EXEC sp_CreateTriggerForTable @tableName
-		SET @cursor = @cursor + 1
-	 END
+		DECLARE @tables nvarchar(MAX) = ''
+		DECLARE @triggers nvarchar(MAX) = ''
+		SELECT @tables = @tables + 'EXEC sp_CreateHistoryTable ' + TABLE_NAME + ' ',
+		@triggers = @triggers + 'EXEC sp_CreateTriggerForTable ' + TABLE_NAME + ' '
+		FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_TYPE = 'BASE TABLE' AND NOT TABLE_NAME LIKE 'HIST_%'
+		EXEC (@tables)
+		EXEC (@triggers)
 END
 GO
 
