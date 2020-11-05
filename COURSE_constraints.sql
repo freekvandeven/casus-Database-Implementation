@@ -488,19 +488,16 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-	/*
-	make a more advanced version
-	IF NOT EXISTS(SELECT * FROM deleted)
-	BEGIN
-		SELECT grade FROM Inserted
-	END
-	*/
-    IF(UPDATE(llimit) OR UPDATE(ulimit))
-		IF EXISTS(SELECT grade, llimit FROM grd g WHERE llimit > (SELECT llimit FROM grd WHERE grade = g.grade + 1))
-		OR EXISTS(SELECT grade, ulimit FROM grd g WHERE ulimit > (SELECT ulimit FROM grd WHERE grade = g.grade + 1))
-		BEGIN
-			;THROW 50000,'Salary must be lower/higher for this salary grade',1
-		END
+    IF(UPDATE(llimit, ulimit) OR INSERT(llimit, ulimit))
+    BEGIN
+      IF EXISTS(SELECT grade, llimit FROM Inserted i WHERE llimit > (SELECT MAX(llimit) FROM grd g WHERE g.grade < i.grade)
+                                                      AND llimit < (SELECT MIN(llimit) FROM grd g WHERE g.grade > i.grade))
+      OR EXISTS(SELECT grade, ulimit FROM Inserted i WHERE ulimit > (SELECT MAX(ulimit) FROM grd g WHERE g.grade < i.grade)
+                                                      AND ulimit < (SELECT MIN(ulimit) FROM grd g WHERE g.grade > i.grade))
+      BEGIN
+          ;THROW 50000,'Salary must be lower/higher for this salary grade',1
+      END
+    END
 END TRY
 BEGIN CATCH
   ;THROW
