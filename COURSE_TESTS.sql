@@ -25,6 +25,7 @@ BEGIN
 	EXEC SP_InsertEmployee 1998, 'enaam', 'ADMIN', '1989-01-01', '2016-01-01', 8, 1000, 'testgebruiker', 10
 END;
 go
+
 -- procedure test insert employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee insert]
 go
@@ -41,6 +42,7 @@ BEGIN
 	EXEC SP_InsertEmployee 1998, 'enaam', 'MANAGER', '1989-01-01', '2016-01-01', 8, 1000, 'testgebruiker', 11
 END;
 go
+
 -- procedure test update employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee update]
 go
@@ -55,8 +57,8 @@ BEGIN
 
 	EXEC SP_UpdateEmployee 1011, 'Sandra', 'ADMIN', '1982-04-25', '2000-07-01', 2, 2400, '23432', 11
 END;
-
 go
+
 -- procedure test update employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee update]
 go
@@ -91,6 +93,7 @@ BEGIN
 	EXEC SP_FireEmployee 1014
 END;
 go
+
 -- procedure test delete employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee delete]
 go
@@ -297,9 +300,9 @@ CONSTRAINT 4
 --------------------------------------------------------*/
 
 -- trigger test 1
-DROP PROCEDURE IF EXISTS testTrainerCoursePerDayConstraint.[test trainer only one course per day success]
+DROP PROCEDURE IF EXISTS [testTrainerCoursePerDayConstraint].[test trainer only one course per day success]
 GO
-CREATE PROCEDURE testTrainerCoursePerDayConstraint.[test trainer only one course per day success]
+CREATE PROCEDURE [testTrainerCoursePerDayConstraint].[test trainer only one course per day success]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'offr'
@@ -311,7 +314,7 @@ BEGIN
 END
 GO
 
--- trigiger test 2
+-- trigger test 2
 DROP PROCEDURE IF EXISTS testTrainerCoursePerDayConstraint.[test trainer only one course per day failure]
 GO
 CREATE PROCEDURE [testTrainerCoursePerDayConstraint].[test trainer only one course per day failure]
