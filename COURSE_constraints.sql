@@ -480,7 +480,6 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    IF(UPDATE(llimit, ulimit) OR INSERT(llimit, ulimit))
     BEGIN
       IF EXISTS(SELECT grade, llimit FROM Inserted i WHERE llimit > (SELECT MAX(llimit) FROM grd g WHERE g.grade < i.grade)
                                                       AND llimit < (SELECT MIN(llimit) FROM grd g WHERE g.grade > i.grade))
@@ -543,7 +542,7 @@ BEGIN TRY
     			GROUP BY i.trainer
           HAVING (SUM(dur)/2 >
     			   (SELECT SUM(dur) FROM offr o2 join crs on o2.course = crs.code join emp on o2.trainer = emp.empno join dept on emp.deptno = dept.deptno
-    			      WHERE o2.trainer = o.trainer AND offr.loc = dept.loc)))
+    			      WHERE o2.trainer = i.trainer AND o2.loc = dept.loc))))
     	    BEGIN
     		     ;THROW 50000,'Teacher needs to teach atleast 50 percent of his time at home office',1
     	    END
@@ -553,11 +552,10 @@ BEGIN TRY
     GROUP BY d.trainer
     HAVING (SUM(dur)/2 >
        (SELECT SUM(dur) FROM offr o2 join crs on o2.course = crs.code join emp on o2.trainer = emp.empno join dept on emp.deptno = dept.deptno
-          WHERE o2.trainer = o.trainer AND o2.loc = dept.loc)))
+          WHERE o2.trainer = d.trainer AND o2.loc = dept.loc))))
     BEGIN
        ;THROW 50000,'Teacher needs to teach atleast 50 percent of his time at home office',1
     END
-  END
 END TRY
 BEGIN CATCH
   ;THROW
