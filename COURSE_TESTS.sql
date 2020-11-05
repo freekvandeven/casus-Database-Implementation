@@ -162,9 +162,9 @@ GO
 CONSTRAINT 2
 --------------------------------------------------------*/
 
-DROP PROCEDURE IF EXISTS testEmployeeAdultConstraint.[test for child labour]
+DROP PROCEDURE IF EXISTS [testEmployeeAdultConstraint].[test for child labour]
 GO
-CREATE PROCEDURE testEmployeeAdultConstraint.[test for child labour]
+CREATE PROCEDURE [testEmployeeAdultConstraint].[test for child labour]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'emp';
@@ -174,9 +174,10 @@ BEGIN
 	insert into emp
 	values (6969,'daoisjd','SALESREP','2008-12-12','2012-12-12',6,5500,'lkdsjaslk',15)
 END
-DROP PROCEDURE IF EXISTS testEmployeeAdultConstraint.[test for adult personel success]
+
+DROP PROCEDURE IF EXISTS [testEmployeeAdultConstraint].[test for adult personel success]
 GO
-CREATE PROCEDURE testEmployeeAdultConstraint.[test for adult personel success]
+CREATE PROCEDURE [testEmployeeAdultConstraint].[test for adult personel success]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'emp';
@@ -190,10 +191,10 @@ END
 /*--------------------------------------------------------
 CONSTRAINT 3
 --------------------------------------------------------*/
-
-DROP PROCEDURE IF EXISTS testSalaryGradeConstraint.[test for adult personel future baby]
+-- trigger test 1
+DROP PROCEDURE IF EXISTS [testSalaryGradeConstraint].[test for adult personel future baby]
 GO
-CREATE PROCEDURE testSalaryGradeConstraint.[test for adult personel future baby]
+CREATE PROCEDURE [testSalaryGradeConstraint].[test for adult personel future baby]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'emp';
@@ -204,9 +205,10 @@ BEGIN
 	values (6969,'daoisjd','SALESREP','2100-12-12','2012-12-12',6,5500,'lkdsjaslk',15)
 END
 
-DROP PROCEDURE IF EXISTS testSalaryGradeConstraint.[test for incremental salary]
+-- trigger test 2
+DROP PROCEDURE IF EXISTS [testSalaryGradeConstraint].[test for incremental salary]
 GO
-CREATE PROCEDURE testSalaryGradeConstraint.[test for incremental salary]
+CREATE PROCEDURE [testSalaryGradeConstraint].[test for incremental salary]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'grd'
@@ -217,9 +219,10 @@ BEGIN
 	,(13,8000,12000,5000)
 END
 
-DROP PROCEDURE IF EXISTS testSalaryGradeConstraint.[test for incremental salary success]
+-- trigger test 3
+DROP PROCEDURE IF EXISTS [testSalaryGradeConstraint].[test for incremental salary success]
 GO
-CREATE PROCEDURE testSalaryGradeConstraint.[test for incremental salary success]
+CREATE PROCEDURE [testSalaryGradeConstraint].[test for incremental salary success]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'grd'
@@ -230,23 +233,16 @@ BEGIN
 	,(12,8000,12000,5000)
 END
 
+
+
+
+
+
 /*--------------------------------------------------------
 CONSTRAINT 4
 --------------------------------------------------------*/
 
-DROP PROCEDURE IF EXISTS testTrainerCoursePerDayConstraint.[test trainer only one course per day]
-GO
-CREATE PROCEDURE testTrainerCoursePerDayConstraint.[test trainer only one course per day]
-AS
-BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'offr'
-	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerOnlyOneCoursePerDay';
-	EXEC tSQLt.ExpectException
-	insert into offr
-	values ('APEX','1998-09-06','CONF',6,1018,'AMSTERDAM'),
-	('AM4DP','1998-09-06','CONF',6,1018,'SAN FRANCISCO')
-END
-
+-- trigger test 1
 DROP PROCEDURE IF EXISTS testTrainerCoursePerDayConstraint.[test trainer only one course per day success]
 GO
 CREATE PROCEDURE testTrainerCoursePerDayConstraint.[test trainer only one course per day success]
@@ -259,14 +255,47 @@ BEGIN
 	values ('APEX','1998-09-06','CONF',6,1018,'AMSTERDAM'),
 	('AM4DP','1998-09-07','CONF',6,1018,'SAN FRANCISCO')
 END
+GO
+
+-- trigiger test 2
+DROP PROCEDURE IF EXISTS testTrainerCoursePerDayConstraint.[test trainer only one course per day failure]
+GO
+CREATE PROCEDURE [testTrainerCoursePerDayConstraint].[test trainer only one course per day failure]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'offr'
+	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerOnlyOneCoursePerDay';
+	EXEC tSQLt.ExpectException
+	insert into offr
+	values ('APEX','1998-09-06','CONF',6,1018,'AMSTERDAM'),
+	('AM4DP','1998-09-06','CONF',6,1018,'SAN FRANCISCO')
+END
+GO
+
+-- trigger test 3
+DROP PROCEDURE IF EXISTS [testTrainerCoursePerDayConstraint].[test trainer only one course per day multi-row failure]
+GO
+CREATE PROCEDURE [testTrainerCoursePerDayConstraint].[test trainer only one course per day multi-row failure]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'offr';
+	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerOnlyOneCoursePerDay';
+	EXEC tSQLt.ExpectException
+  insert into offr
+	values ('APEX','1997-08-15','CONF',6,1017,'SAN FRANCISCO'),
+  ('J2EE','1997-08-15','CONF',6,1017,'SAN FRANCISCO'),
+	('PLSQL','1998-08-16','CONF',6,1018,'SAN FRANCISCO')
+END
+GO
 
 /*--------------------------------------------------------
 CONSTRAINT 5
 --------------------------------------------------------*/
 
-DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based]
+-- trigger test 1
+DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based failure]
 GO
-CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based]
+CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based failure]
 AS
 BEGIN
 	EXEC tSQLt.ExpectException
@@ -274,9 +303,21 @@ BEGIN
 	values ('AM4DP','1998-09-09','CONF',6,1016,'AMSTERDAM') -- this trainer already teaches too much at home so there is already an exception here
 END
 
+-- trigger test 2
 DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based success]
 GO
 CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based success]
+AS
+BEGIN
+	EXEC tSQLt.ExpectNoException
+	insert into offr
+	values ('AM4DP','1998-09-09','CONF',6,1016,'SAN FRANCISCO') -- 10 hour course at home makes it so this trainer does qualify now
+END
+
+-- trigger test 3
+DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based multi-row failure]
+GO
+CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based multi-row failure]
 AS
 BEGIN
 	EXEC tSQLt.ExpectNoException
