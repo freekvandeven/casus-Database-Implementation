@@ -206,7 +206,6 @@ The following order is preferred;
 */
 
 /* 1. A department that employs the president or a manager should also employ at least one administrator */
-# need trigger when president or a manager gets added.
 
 GO
 DROP TRIGGER IF EXISTS DepartmentAdministratorPresident
@@ -220,14 +219,6 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-	-- make special construction
-	--IF INSERT() if no manager or president is inserted
-
-	-- make special construction for delete
-	--IF DELETE() if no admin is deleted
-
-    --IF UPDATE(deptno) OR UPDATE(job) -- need to make this smarter
-	--could use instead of isnull AND (e.empno NOT IN (select empno from term) OR EXISTS (select empno from term where e.hired > leftcomp))
     BEGIN
 		IF EXISTS(
 			SELECT d.deptno as departments FROM emp e right join dept d on e.deptno = d.deptno left join term t on e.empno=t.empno WHERE isnull(t.leftcomp,'1753-1-1') < e.hired and (job = 'MANAGER' OR job = 'PRESIDENT') GROUP BY d.deptno
@@ -243,6 +234,7 @@ BEGIN CATCH
   ;THROW
 END CATCH
 END
+
 GO
 DROP TRIGGER IF EXISTS DepartmentAdministratorPresidentInsert
 GO
@@ -506,8 +498,8 @@ END
 GO
 
 /* 4. The start date and known trainer uniquely identify course offerings. replace the unique key on startdate and trainer Note. no filtered index */
-alter table offr
-drop constraint ofr_unq
+ALTER TABLE offr
+DROP CONSTRAINT ofr_unq
 GO
 DROP TRIGGER IF EXISTS TrainerOnlyOneCoursePerDay
 GO
@@ -520,7 +512,6 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-	--IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer GROUP BY trainer, starts HAVING COUNT(*) > 1))
     IF EXISTS(SELECT 1 FROM inserted i WHERE EXISTS(SELECT 1 from offr o where i.trainer=o.trainer AND i.trainer IS NOT NULL GROUP BY trainer, starts HAVING COUNT(*) > 1))
 	BEGIN
     ;THROW 50000,'Person can only give 1 course on a day',1
@@ -546,13 +537,27 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-    IF EXISTS(SELECT trainer,SUM(dur) FROM offr o join crs c on o.course = c.code
-			GROUP BY trainer HAVING SUM(dur)/2 >
-			(SELECT SUM(dur) FROM crs join offr on offr.course = crs.code join emp on offr.trainer = emp.empno join dept on emp.deptno = dept.deptno
-			WHERE offr.trainer = o.trainer AND offr.loc = dept.loc))
-	BEGIN
-		;THROW 50000,'Teacher needs to teach atleast 50 percent of his time at home office',1
-	END
+    IF EXISTS(SELECT 1 FROM Inserted)
+    BEGIN
+        IF EXISTS((SELECT 1 FROM Inserted i join offr o on i.trainer = o.trainer join crs c on o.course = c.code
+    			GROUP BY i.trainer
+          HAVING (SUM(dur)/2 >
+    			   (SELECT SUM(dur) FROM offr o2 join crs on o2.course = crs.code join emp on o2.trainer = emp.empno join dept on emp.deptno = dept.deptno
+    			      WHERE o2.trainer = o.trainer AND offr.loc = dept.loc)))
+    	    BEGIN
+    		     ;THROW 50000,'Teacher needs to teach atleast 50 percent of his time at home office',1
+    	    END
+    END
+  ELSE
+  IF EXISTS((SELECT 1 FROM Deleted d join offr o on d.trainer = o.trainer join crs c on o.course = c.code
+    GROUP BY d.trainer
+    HAVING (SUM(dur)/2 >
+       (SELECT SUM(dur) FROM offr o2 join crs on o2.course = crs.code join emp on o2.trainer = emp.empno join dept on emp.deptno = dept.deptno
+          WHERE o2.trainer = o.trainer AND o2.loc = dept.loc)))
+    BEGIN
+       ;THROW 50000,'Teacher needs to teach atleast 50 percent of his time at home office',1
+    END
+  END
 END TRY
 BEGIN CATCH
   ;THROW
@@ -576,19 +581,21 @@ IF @@ROWCOUNT=0
     RETURN
 SET NOCOUNT ON
 BEGIN TRY
-	IF EXISTS(SELECT trainer FROM offr join emp e on trainer = empno WHERE job != 'TRAINER')
-	BEGIN
-		;THROW 50000,'Person is not a trainer.',1
-	END
-	-- interpreted as at worked here at least one year since last hire date
-	IF EXISTS (SELECT trainer FROM offr join emp e on trainer = empno left join term t on e.empno = t.empno WHERE DATEDIFF(year, hired, GETDATE()) < 1 and isnull(t.leftcomp,'1753-1-1') < e.hired
-					AND NOT EXISTS(SELECT 1 FROM reg WHERE stud = trainer AND reg.course = offr.course))
-	BEGIN
-		;THROW 50000,'Person needs to attend the course or be employed for 1 year as a teacher to teach a course',1
-	END
+  IF EXISTS(SELECT 1 FROM Inserted i WHERE i.trainer IS NOT NULL)
+  BEGIN
+    	IF EXISTS(SELECT 1 FROM Inserted i join emp e on i.trainer = empno WHERE job != 'TRAINER')
+    	BEGIN
+    		;THROW 50000,'Person is not a trainer.',1
+    	END
+    	-- interpreted as: worked here at least one year since last hire date
+    	IF EXISTS (SELECT i.trainer FROM Inserted i join emp e on i.trainer = e.empno left join term t on e.empno = t.empno WHERE DATEDIFF(year, hired, GETDATE()) < 1 and isnull(t.leftcomp,'1753-1-1') < e.hired
+    					AND NOT EXISTS(SELECT 1 FROM reg WHERE stud = i.trainer AND reg.course = i.course))
+    	BEGIN
+    		;THROW 50000,'Person needs to attend the course or be employed for 1 year as a teacher to teach a course',1
+    	END
+  END
 END TRY
 BEGIN CATCH
   ;THROW
 END CATCH
 END
-GO
