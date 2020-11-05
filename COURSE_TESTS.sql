@@ -144,9 +144,9 @@ END
 GO
 
 -- trigger test 3
-DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for bad multi-row insert]
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for bad multirow insert]
 GO
-CREATE PROCEDURE [testDepartmentAdminConstraint].[test for bad multi-row insert]
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for bad multirow insert]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'emp';
@@ -154,7 +154,7 @@ BEGIN
 	EXEC tSQLt.ExpectNoException
 
 	--multi-row insert
-	INSERT INTO emp VALUES(),(),()
+	--INSERT INTO emp VALUES(),(),()
 END
 GO
 
@@ -293,9 +293,9 @@ CONSTRAINT 5
 --------------------------------------------------------*/
 
 -- trigger test 1
-DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based failure]
+DROP PROCEDURE IF EXISTS [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based failure]
 GO
-CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based failure]
+CREATE PROCEDURE [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based failure]
 AS
 BEGIN
 	EXEC tSQLt.ExpectException
@@ -304,9 +304,9 @@ BEGIN
 END
 
 -- trigger test 2
-DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based success]
+DROP PROCEDURE IF EXISTS [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based success]
 GO
-CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based success]
+CREATE PROCEDURE [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based success]
 AS
 BEGIN
 	EXEC tSQLt.ExpectNoException
@@ -315,9 +315,9 @@ BEGIN
 END
 
 -- trigger test 3
-DROP PROCEDURE IF EXISTS testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based multi-row failure]
+DROP PROCEDURE IF EXISTS [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based multi-row failure]
 GO
-CREATE PROCEDURE testTrainerTeachesFromHomeConstraint.[test at least halve the courses are home based multi-row failure]
+CREATE PROCEDURE [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based multi-row failure]
 AS
 BEGIN
 	EXEC tSQLt.ExpectNoException
@@ -329,9 +329,10 @@ END
 CONSTRAINT 6
 --------------------------------------------------------*/
 
-DROP PROCEDURE IF EXISTS testTrainerQualifiedConstraint.[test emp doesn't have trainer as his job]
+-- trigger test 1
+DROP PROCEDURE IF EXISTS [testTrainerQualifiedConstraint].[test emp does not have trainer as his job]
 GO
-CREATE PROCEDURE testTrainerQualifiedConstraint.[test emp doesn't have trainer as his job]
+CREATE PROCEDURE [testTrainerQualifiedConstraint].[test emp does not have trainer as his job]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'offr'
@@ -342,9 +343,10 @@ BEGIN
 	values ('APEX','1998-09-11','CONF',6,1011,'AMSTERDAM')
 END
 
-DROP PROCEDURE IF EXISTS testTrainerQualifiedConstraint.[test this trainer doesn't work here for a year]
+-- trigger test 2
+DROP PROCEDURE IF EXISTS [testTrainerQualifiedConstraint].[test this trainer does not work here for a year]
 GO
-CREATE PROCEDURE testTrainerQualifiedConstraint.[test this trainer doesn't work here for a year]
+CREATE PROCEDURE [testTrainerQualifiedConstraint].[test this trainer does not work here for a year]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'offr'
@@ -355,18 +357,21 @@ insert into emp values(1034,'dshkdsa','TRAINER','1965-03-21','2020-07-22',4,4000
 insert into offr values('APEX','1998-09-11','CONF',6,1034,'AMSTERDAM') -- wordt ook in de offr tabel gezet
 END
 
-DROP PROCEDURE IF EXISTS testTrainerQualifiedConstraint.[test at least halve the courses are home based success]
+
+-- trigger test 3
+DROP PROCEDURE IF EXISTS [testTrainerQualifiedConstraint].[test at least halve the courses are home based success]
 GO
-CREATE PROCEDURE testTrainerQualifiedConstraint.[test at least halve the courses are home based success]
+CREATE PROCEDURE [testTrainerQualifiedConstraint].[test at least halve the courses are home based success]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'offr'
 	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerQualified';
 	EXEC tSQLt.ExpectNoException
-insert into emp values(1034,'dshkdsa','TRAINER','1965-03-21','2020-07-22',4,4000,'sdkaljda',15)
-insert into reg values(1034,'APEX','2001-10-11',4) -- nieuwe trainer heeft nu wel de course gevolgd in het verleden
-insert into offr values('APEX','1998-09-11','CONF',6,1034,'AMSTERDAM')
+	insert into emp values(1034,'dshkdsa','TRAINER','1965-03-21','2020-07-22',4,4000,'sdkaljda',15)
+	insert into reg values(1034,'APEX','2001-10-11',4) -- nieuwe trainer heeft nu wel de course gevolgd in het verleden
+	insert into offr values('APEX','1998-09-11','CONF',6,1034,'AMSTERDAM')
 END
+GO
 
 
 EXEC tSQLt.runAll
