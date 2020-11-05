@@ -298,9 +298,11 @@ GO
 CREATE PROCEDURE [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based failure]
 AS
 BEGIN
+  EXEC tSQLt.FakeTable 'dbo', 'offr';
+	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerTeachesFromHome';
 	EXEC tSQLt.ExpectException
 	insert into offr
-	values ('AM4DP','1998-09-09','CONF',6,1016,'AMSTERDAM') -- this trainer already teaches too much at home so there is already an exception here
+	values ('APEX','1997-08-14','CONF',6,1016,'AMSTERDAM') -- this trainer already teaches too much at home so there is already an exception here
 END
 
 -- trigger test 2
@@ -309,9 +311,11 @@ GO
 CREATE PROCEDURE [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based success]
 AS
 BEGIN
+  EXEC tSQLt.FakeTable 'dbo', 'offr';
+	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerTeachesFromHome';
 	EXEC tSQLt.ExpectNoException
 	insert into offr
-	values ('AM4DP','1998-09-09','CONF',6,1016,'SAN FRANCISCO') -- 10 hour course at home makes it so this trainer does qualify now
+	values ('APEX','1997-08-14','CONF',6,1016,'SAN FRANCISCO') -- 10 hour course at home makes it so this trainer does qualify now
 END
 
 -- trigger test 3
@@ -320,9 +324,14 @@ GO
 CREATE PROCEDURE [testTrainerTeachesFromHomeConstraint].[test at least halve the courses are home based multi-row failure]
 AS
 BEGIN
-	EXEC tSQLt.ExpectNoException
-	insert into offr
-	values ('AM4DP','1998-09-09','CONF',6,1016,'SAN FRANCISCO') -- 10 hour course at home makes it so this trainer does qualify now
+  EXEC tSQLt.FakeTable 'dbo', 'offr';
+	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerTeachesFromHome';
+	EXEC tSQLt.ExpectException
+	insert into offr (course,starts,status,maxcap,trainer,loc)
+	values ('APEX','1997-08-14','CONF',6,1016,'SAN FRANCISCO'),
+			   ('APEX','1998-08-14','CONF',6,1016,'LONDON'),
+			   ('APEX','1999-08-14','CONF',6,1016,'BERLIN'),
+			   ('APEX','2000-08-14','CONF',6,1016,'AMSTERDAM')
 END
 
 /*--------------------------------------------------------
@@ -340,7 +349,7 @@ BEGIN
 	EXEC tSQLt.ExpectException
 
 	insert into offr
-	values ('APEX','1998-09-11','CONF',6,1011,'AMSTERDAM')
+	values ('APEX','1998-09-11','CONF',6,1011,'AMSTERDAM') -- empno with 1011 is not a trainer
 END
 
 -- trigger test 2
@@ -359,17 +368,19 @@ END
 
 
 -- trigger test 3
-DROP PROCEDURE IF EXISTS [testTrainerQualifiedConstraint].[test at least halve the courses are home based success]
+DROP PROCEDURE IF EXISTS [testTrainerQualifiedConstraint].[test at least halve the courses are home based multi-row success]
 GO
-CREATE PROCEDURE [testTrainerQualifiedConstraint].[test at least halve the courses are home based success]
+CREATE PROCEDURE [testTrainerQualifiedConstraint].[test at least halve the courses are home based multi-row success]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'offr'
 	EXEC tSQLt.ApplyTrigger @TableName =  'offr', @TriggerName =  'TrainerQualified';
 	EXEC tSQLt.ExpectNoException
-	insert into emp values(1034,'dshkdsa','TRAINER','1965-03-21','2020-07-22',4,4000,'sdkaljda',15)
-	insert into reg values(1034,'APEX','2001-10-11',4) -- nieuwe trainer heeft nu wel de course gevolgd in het verleden
-	insert into offr values('APEX','1998-09-11','CONF',6,1034,'AMSTERDAM')
+	insert into offr
+  values ('APEX','1997-08-15','CONF',6,1017,'SAN FRANCISCO'),
+		   ('WISB','1997-08-15','CONF',6,1018,'SAN FRANCISCO'),
+		   ('WISA','2000-02-08','CONF',6,1017,'SAN FRANCISCO'),
+		   ('WISC','2002-12-11','CONF',6,1018,'SAN FRANCISCO')
 END
 GO
 
