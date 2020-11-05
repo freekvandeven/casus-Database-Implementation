@@ -481,10 +481,10 @@ IF @@ROWCOUNT=0
 SET NOCOUNT ON
 BEGIN TRY
     BEGIN
-      IF EXISTS(SELECT grade, llimit FROM Inserted i WHERE llimit > (SELECT MAX(llimit) FROM grd g WHERE g.grade < i.grade)
-                                                      AND llimit < (SELECT MIN(llimit) FROM grd g WHERE g.grade > i.grade))
-      OR EXISTS(SELECT grade, ulimit FROM Inserted i WHERE ulimit > (SELECT MAX(ulimit) FROM grd g WHERE g.grade < i.grade)
-                                                      AND ulimit < (SELECT MIN(ulimit) FROM grd g WHERE g.grade > i.grade))
+      IF EXISTS(SELECT grade, llimit FROM Inserted i WHERE llimit < (SELECT MAX(llimit) FROM grd g WHERE g.grade < i.grade)
+                                                      OR llimit > (SELECT MIN(llimit) FROM grd g WHERE g.grade > i.grade))
+      OR EXISTS(SELECT grade, ulimit FROM Inserted i WHERE ulimit < (SELECT MAX(ulimit) FROM grd g WHERE g.grade < i.grade)
+                                                      OR ulimit > (SELECT MIN(ulimit) FROM grd g WHERE g.grade > i.grade))
       BEGIN
           ;THROW 50000,'Salary must be lower/higher for this salary grade',1
       END

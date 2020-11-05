@@ -17,66 +17,63 @@ go
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee insert]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
-	EXEC [tSQLt].[ExpectException]
+	EXEC [tSQLt].[ExpectNoException]
 
 	--Zet een gegarandeerd goede eerste president rij in dbo. emp
 	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
 	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
-
-	EXEC SP_InsertEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+	EXEC SP_InsertEmployee 1998, 'enaam', 'ADMIN', '1989-01-01', '2016-01-01', 8, 1000, 'testgebruiker', 10
 END;
 go
-
 -- procedure test insert employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee insert]
 go
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false employee insert]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC [tSQLt].[ExpectException]
 
 	--Zet een gegarandeerd goede eerste president rij in dbo. emp
 	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
 	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
-
-	EXEC SP_InsertEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+	update emp set job = 'SALESREP' where empno = 1003
+	update emp set job = 'SALESREP' where empno = 1004
+	EXEC SP_InsertEmployee 1998, 'enaam', 'MANAGER', '1989-01-01', '2016-01-01', 8, 1000, 'testgebruiker', 11
 END;
 go
-
 -- procedure test update employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee update]
 go
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee update]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
-	EXEC [tSQLt].[ExpectException]
+	EXEC [tSQLt].[ExpectNoException]
 
 	--Zet een gegarandeerd goede eerste president rij in dbo. emp
 	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
 	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
 
-	EXEC SP_UpdateEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+	EXEC SP_UpdateEmployee 1011, 'Sandra', 'ADMIN', '1982-04-25', '2000-07-01', 2, 2400, '23432', 11
 END;
-go
 
+go
 -- procedure test update employee
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee update]
 go
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false employee update]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC [tSQLt].[ExpectException]
 
 	--Zet een gegarandeerd goede eerste president rij in dbo. emp
 	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
 	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
 
-	EXEC SP_UpdateEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+
+	EXEC SP_UpdateEmployee 1004, 'Sandra', 'SALESREP', '1982-04-25', '2000-07-01', 2, 2400, 'SANDRA', 11
 END;
+
+
 go
 
 -- procedure test delete employee
@@ -85,31 +82,27 @@ go
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee delete]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
-	EXEC [tSQLt].[ExpectException]
+	EXEC [tSQLt].[ExpectNoException]
 
 	--Zet een gegarandeerd goede eerste president rij in dbo. emp
 	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
 	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
 
-	EXEC SP_DeleteEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+	EXEC SP_FireEmployee 1014
 END;
 go
-
 -- procedure test delete employee
-DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for correct employee delete]
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false employee delete]
 go
-CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct employee delete]
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false employee delete]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC [tSQLt].[ExpectException]
 
 	--Zet een gegarandeerd goede eerste president rij in dbo. emp
 	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
 	VALUES(5560,'Freek','PRESIDENT','1957-12-22','1992-01-01',10,1000,'FREEK',10);
-
-	EXEC SP_DeleteEmployee 1000, 'enaam', 'ADMIN', '1900-01-01', '1980-01-01', 8, 1000, 'testgebruiker', 8
+	EXEC SP_FireEmployee 1004
 END;
 go
 
@@ -119,16 +112,17 @@ GO
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for correct insert]
 AS
 BEGIN
-	EXEC tSQLt.FakeTable 'dbo', 'emp';
+EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
-	EXEC tSQLt.ExpectException
+	EXEC tSQLt.ExpectNoException
 
 	--actie
-	UPDATE emp SET job='SALESREP' WHERE empno = 1004
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','ADMIN','1957-12-22','1992-01-01',10,1000,'FREEK',10);
 END
 GO
 
--- trigger test 2
+-- trigger test 1
 DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false update]
 GO
 CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false update]
@@ -139,22 +133,82 @@ BEGIN
 	EXEC tSQLt.ExpectNoException
 
 	--actie
-	UPDATE emp SET job='SALESREP' WHERE empno = 1011
+		INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','SALESREP','1957-12-22','1992-01-01',10,1000,'FREEK',10);
+	UPDATE emp SET job='ADMIN' WHERE empno = 5560
 END
 GO
 
--- trigger test 3
-DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for bad multirow insert]
+
+-- trigger test 1
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for bad multi-row insert]
 GO
-CREATE PROCEDURE [testDepartmentAdminConstraint].[test for bad multirow insert]
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for bad multi-row insert]
 AS
 BEGIN
 	EXEC tSQLt.FakeTable 'dbo', 'emp';
 	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresident';
-	EXEC tSQLt.ExpectNoException
+	EXEC tSQLt.ExpectException
 
 	--multi-row insert
-	--INSERT INTO emp VALUES(),(),()
+		INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','ADMIN','1957-12-22','1992-01-01',10,1000,'FREEK',10),
+	(5566,'Freeks','MANAGER','1957-12-22','1992-01-01',10,1000,'PREEK',11)
+END
+GO
+
+--trigger test 2
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for bad multi-row insert trigger 3]
+GO
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for bad multi-row insert trigger 3]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresidentInsert';
+	EXEC tSQLt.ExpectException
+
+	--multi-row insert
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','ADMIN','1957-12-22','1992-01-01',10,1000,'FREEK',10),
+	(5566,'Freeks','MANAGER','1957-12-22','1992-01-01',10,1000,'PREEK',11)
+END
+GO
+
+--trigger test 3
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false update trigger 3]
+GO
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false update trigger 3]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresidentUpdate';
+	EXEC tSQLt.ExpectException
+
+	--multi-row insert
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','ADMIN','1957-12-22','1992-01-01',10,1000,'FREEK',10),
+	(5566,'Freeks','MANAGER','1957-12-22','1992-01-01',10,1000,'PREEK',10)
+
+	update emp set Job= 'SALESREP' where empno = 5560
+END
+GO
+
+--trigger test 4
+DROP PROCEDURE IF EXISTS [testDepartmentAdminConstraint].[test for false delete trigger 4]
+GO
+CREATE PROCEDURE [testDepartmentAdminConstraint].[test for false delete trigger 4]
+AS
+BEGIN
+	EXEC tSQLt.FakeTable 'dbo', 'emp';
+	EXEC tSQLt.ApplyTrigger @TableName =  'emp', @TriggerName =  'DepartmentAdministratorPresidentDelete';
+	EXEC tSQLt.ExpectException
+
+	--multi-row insert
+	INSERT INTO dbo.emp(empno,ename,job,born,hired,sgrade,msal,username,deptno)
+	VALUES(5560,'Freek','ADMIN','1957-12-22','1992-01-01',10,1000,'FREEK',10),
+	(5566,'Freeks','MANAGER','1957-12-22','1992-01-01',10,1000,'PREEK',10)
+
+	delete from emp where Job= 'ADMIN'
 END
 GO
 
